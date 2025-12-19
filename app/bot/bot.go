@@ -83,8 +83,8 @@ func Start(ctx context.Context) {
 		ReplyMarkup: models.InlineKeyboardMarkup{
 			InlineKeyboard: [][]models.InlineKeyboardButton{
 				{
-					{Text: "📢 关注频道", URL: "https://t.me/BEpusdtChannel"},
-					{Text: "💬 社区交流", URL: "https://t.me/BEpusdtChat"},
+					{Text: "📢 关注频道", URL: "https://t.me/XUI_ZH"},
+					{Text: "💬 社区交流", URL: "https://t.me/XUI_CN"},
 				},
 			},
 		},
