@@ -115,7 +115,9 @@ func SendNotifyFailed(o model.TradeOrders, reason string) {
 
 func Welcome() string {
 	return `
-👋 欢迎使用 BEpusdt，一款更好用的个人 USDT/USDC 收款网关，如果您看到此消息，说明机器人已经启动成功！
+👋 欢迎使用 BEpusdt，一款更好用的个人 USDT/USDC 收款网关，
+1、这是〔X-Panel-Pro版〕的授权码专用“USDT”收款监控机器人，
+2、如果您看到此消息，说明机器人已经启动成功！并处于“实时监控”。
 
 📌当前版本：` + app.Version + `
 📝发送命令 /start 可以开始使用
