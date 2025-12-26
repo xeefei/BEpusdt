@@ -283,58 +283,78 @@ func (e *evm) getBlockByNumber(a any) {
 
 func (e *evm) parseBlockTransfer(b evmBlock, timestamp map[string]time.Time) ([]transfer, error) {
 	transfers := make([]transfer, 0)
-	post := []byte(fmt.Sprintf(`{"jsonrpc":"2.0","method":"eth_getLogs","params":[{"fromBlock":"0x%x","toBlock":"0x%x","topics":["%s"]}],"id":1}`, b.From, b.To, evmTransferEvent))
-	resp, err := client.Post(e.Endpoint, "application/json", bytes.NewBuffer(post))
-	if err != nil {
 
-		return transfers, errors.Join(errors.New("eth_getLogs Post Error"), err)
+	// --- 核心优化：获取当前网络需要监听的合约地址列表 ---
+	var targetAddresses []string
+	if tradeTypes, ok := networkTokenMap[e.Network]; ok {
+		for _, tType := range tradeTypes {
+			// 从已有的映射中反向查找当前网络支持的合约地址
+			for addr, mappedType := range contractMap {
+				if mappedType == tType {
+					targetAddresses = append(targetAddresses, addr)
+				}
+			}
+		}
 	}
 
+	// 如果没有找到地址，直接跳过，保护流量
+	if len(targetAddresses) == 0 {
+		return transfers, nil
+	}
+
+	// 构造 RPC 请求：明确告诉节点我只要这几个地址的数据
+	// 将地址数组拼成 ["0x1...","0x2..."] 格式
+	addrArrayJson := `["` + strings.Join(targetAddresses, `","`) + `"]`
+	
+	// 在 params 里增加了 "address": %s
+	payload := fmt.Sprintf(`{"jsonrpc":"2.0","method":"eth_getLogs","params":[{"fromBlock":"0x%x","toBlock":"0x%x","address":%s,"topics":["%s"]}],"id":1}`, 
+		b.From, b.To, addrArrayJson, evmTransferEvent)
+	
+	resp, err := client.Post(e.Endpoint, "application/json", bytes.NewBuffer([]byte(payload)))
+	// --- 优化结束 ---
+
+	if err != nil {
+		return transfers, errors.Join(errors.New("eth_getLogs Post Error"), err)
+	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-
 		return transfers, errors.Join(errors.New("eth_getLogs ReadAll Error"), err)
 	}
 
 	data := gjson.ParseBytes(body)
 	if data.Get("error").Exists() {
-
 		return transfers, errors.New(fmt.Sprintf("%s eth_getLogs response error %s", e.Network, data.Get("error").String()))
 	}
 
 	for _, itm := range data.Get("result").Array() {
-		to := itm.Get("address").String()
+		to := strings.ToLower(itm.Get("address").String()) // 统一转小写防止匹配失败
 		tradeType, ok := contractMap[to]
 		if !ok {
-
 			continue
 		}
 
 		topics := itm.Get("topics").Array()
 		if len(topics) < 3 {
-
 			continue
 		}
 
-		if topics[0].String() != evmTransferEvent { // transfer event signature
-
+		if topics[0].String() != evmTransferEvent { 
 			continue
 		}
 
+		// 解析地址和金额
 		from := fmt.Sprintf("0x%s", topics[1].String()[26:])
 		recv := fmt.Sprintf("0x%s", topics[2].String()[26:])
 		amount, ok := big.NewInt(0).SetString(itm.Get("data").String()[2:], 16)
 		if !ok || amount.Sign() <= 0 {
-
 			continue
 		}
 
 		blockNum, err := strconv.ParseInt(itm.Get("blockNumber").String(), 0, 64)
 		if err != nil {
 			log.Warn("evmBlockParse Error parsing block number:", err)
-
 			continue
 		}
 
