@@ -3,7 +3,7 @@ package task
 import (
 	"context"
 
-	"github.com/v03413/bepusdt/app/bot"
+	"github.com/xeefei/bepusdt/app/bot"
 )
 
 func init() {
