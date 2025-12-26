@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/smallnest/chanx"
-	"github.com/v03413/bepusdt/app/conf"
+	"github.com/xeefei/bepusdt/app/conf"
 )
 
 func baseInit() {
