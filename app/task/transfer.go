@@ -16,7 +16,7 @@ import (
 	"github.com/xeefei/bepusdt/app/help"
 	"github.com/xeefei/bepusdt/app/model"
 	"github.com/xeefei/bepusdt/app/web/notify"
-	"github.com/xeefei/tronprotocol/core"
+	"github.com/v03413/tronprotocol/core"
 )
 
 type transfer struct {

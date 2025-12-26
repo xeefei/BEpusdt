@@ -69,6 +69,6 @@ require (
 )
 
 replace (
-    github.com/v03413/go-cache => github.com/xeefei/go-cache main
-    github.com/v03413/tronprotocol => github.com/xeefei/tronprotocol main
+	github.com/v03413/go-cache => github.com/xeefei/go-cache v0.0.0-20251226161959-774cf8527822
+	github.com/v03413/tronprotocol => github.com/xeefei/tronprotocol v0.0.0-20251226162116-1fd4060559e8
 )

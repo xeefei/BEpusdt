@@ -7,7 +7,7 @@ import (
 	"github.com/go-telegram/bot/models"
 	"github.com/xeefei/bepusdt/app/help"
 	"github.com/xeefei/bepusdt/app/model"
-	"github.com/xeefei/go-cache"
+	"github.com/v03413/go-cache"
 	"strings"
 )
 

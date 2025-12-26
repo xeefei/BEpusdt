@@ -16,7 +16,7 @@ import (
 	"github.com/xeefei/bepusdt/app/log"
 	"github.com/xeefei/bepusdt/app/model"
 	e "github.com/xeefei/bepusdt/app/web/epay"
-	"github.com/xeefei/go-cache"
+	"github.com/v03413/go-cache"
 )
 
 type EpNotify struct {
