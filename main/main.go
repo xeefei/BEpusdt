@@ -7,13 +7,13 @@ import (
 	"os/signal"
 	"runtime"
 
-	"github.com/v03413/bepusdt/app"
-	"github.com/v03413/bepusdt/app/bot"
-	"github.com/v03413/bepusdt/app/conf"
-	"github.com/v03413/bepusdt/app/log"
-	"github.com/v03413/bepusdt/app/model"
-	"github.com/v03413/bepusdt/app/task"
-	"github.com/v03413/bepusdt/app/web"
+	"github.com/xeefei/bepusdt/app"
+	"github.com/xeefei/bepusdt/app/bot"
+	"github.com/xeefei/bepusdt/app/conf"
+	"github.com/xeefei/bepusdt/app/log"
+	"github.com/xeefei/bepusdt/app/model"
+	"github.com/xeefei/bepusdt/app/task"
+	"github.com/xeefei/bepusdt/app/web"
 )
 
 type Initializer func() error
