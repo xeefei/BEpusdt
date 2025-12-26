@@ -7,10 +7,10 @@ import (
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
-	"github.com/v03413/bepusdt/app"
-	"github.com/v03413/bepusdt/app/conf"
-	"github.com/v03413/bepusdt/app/help"
-	"github.com/v03413/bepusdt/app/model"
+	"github.com/xeefei/bepusdt/app"
+	"github.com/xeefei/bepusdt/app/conf"
+	"github.com/xeefei/bepusdt/app/help"
+	"github.com/xeefei/bepusdt/app/model"
 )
 
 func SendTradeSuccMsg(order model.TradeOrders) {
