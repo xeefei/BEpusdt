@@ -67,3 +67,8 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 	modernc.org/sqlite v1.38.0 // indirect
 )
+
+replace (
+    github.com/v03413/go-cache => github.com/xeefei/go-cache main
+    github.com/v03413/tronprotocol => github.com/xeefei/tronprotocol main
+)
