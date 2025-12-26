@@ -14,13 +14,13 @@ func baseInit() {
 		Network:  conf.Base,
 		Endpoint: conf.GetBaseRpcEndpoint(),
 		Block: block{
-			InitStartOffset: -600,
-			ConfirmedOffset: 40,
+			InitStartOffset: -50,
+			ConfirmedOffset: 15,
 		},
 		blockScanQueue: chanx.NewUnboundedChan[evmBlock](ctx, 30),
 	}
 
 	register(task{callback: base.blockDispatch})
-	register(task{callback: base.blockRoll, duration: time.Second * 5})
-	register(task{callback: base.tradeConfirmHandle, duration: time.Second * 5})
+	register(task{callback: base.blockRoll, duration: time.Second * 45})
+	register(task{callback: base.tradeConfirmHandle, duration: time.Second * 45})
 }
