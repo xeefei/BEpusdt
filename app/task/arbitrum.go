@@ -14,13 +14,13 @@ func arbitrumInit() {
 		Network:  conf.Arbitrum,
 		Endpoint: conf.GetArbitrumRpcEndpoint(),
 		Block: block{
-			InitStartOffset: -600,
-			ConfirmedOffset: 40,
+			InitStartOffset: -50,
+			ConfirmedOffset: 15,
 		},
 		blockScanQueue: chanx.NewUnboundedChan[evmBlock](ctx, 30),
 	}
 
 	register(task{callback: arb.blockDispatch})
-	register(task{callback: arb.blockRoll, duration: time.Second * 5})
-	register(task{callback: arb.tradeConfirmHandle, duration: time.Second * 5})
+	register(task{callback: arb.blockRoll, duration: time.Second * 45})
+	register(task{callback: arb.tradeConfirmHandle, duration: time.Second * 45})
 }
