@@ -2,7 +2,7 @@ package log
 
 import (
 	"github.com/sirupsen/logrus"
-	"github.com/v03413/bepusdt/app/conf"
+	"github.com/xeefei/bepusdt/app/conf"
 	"io"
 	"os"
 )
