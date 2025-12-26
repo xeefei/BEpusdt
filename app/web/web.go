@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/v03413/bepusdt/app/conf"
-	"github.com/v03413/bepusdt/app/log"
-	"github.com/v03413/bepusdt/static"
+	"github.com/xeefei/bepusdt/app/conf"
+	"github.com/xeefei/bepusdt/app/log"
+	"github.com/xeefei/bepusdt/static"
 )
 
 func Start(ctx context.Context) {
