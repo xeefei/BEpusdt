@@ -189,7 +189,7 @@ func (e *evm) blockDispatch(ctx context.Context) {
 		case n := <-e.blockScanQueue.Out:
 			if err := p.Invoke(n); err != nil {
 				// 发生错误时，稍等一下再重新入队，防止瞬间死循环
-				time.AfterFunc(time.Second*2, func() {
+				time.AfterFunc(time.Second*5, func() {
 					e.blockScanQueue.In <- n
 				})
 				log.Warn("任务分发失败:", err)
@@ -225,7 +225,7 @@ func (e *evm) getBlockByNumber(a any) {
 	if err != nil {
 		conf.SetBlockFail(e.Network)
 		// 失败重试：延迟入队
-		time.AfterFunc(time.Second*3, func() { e.blockScanQueue.In <- b })
+		time.AfterFunc(time.Second*8, func() { e.blockScanQueue.In <- b })
 		log.Warn("eth_getBlockByNumber 网络错误:", err)
 		return
 	}
@@ -241,7 +241,7 @@ func (e *evm) getBlockByNumber(a any) {
 	for _, itm := range gjson.ParseBytes(body).Array() {
 		if itm.Get("error").Exists() {
 			conf.SetBlockFail(e.Network)
-			time.AfterFunc(time.Second*3, func() { e.blockScanQueue.In <- b })
+			time.AfterFunc(time.Second*8, func() { e.blockScanQueue.In <- b })
 			log.Warn(fmt.Sprintf("%s 节点返回错误: %s", e.Network, itm.Get("error").String()))
 			return
 		}
@@ -252,7 +252,7 @@ func (e *evm) getBlockByNumber(a any) {
 	transfers, err := e.parseBlockTransfer(b, timestamp)
 	if err != nil {
 		conf.SetBlockFail(e.Network)
-		time.AfterFunc(time.Second*3, func() { e.blockScanQueue.In <- b })
+		time.AfterFunc(time.Second*8, func() { e.blockScanQueue.In <- b })
 		log.Warn("日志解析过程报错:", err)
 		return
 	}
