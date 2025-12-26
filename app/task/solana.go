@@ -14,22 +14,15 @@ import (
 	"github.com/btcsuite/btcd/btcutil/base58"
 	"github.com/panjf2000/ants/v2"
 	"github.com/shopspring/decimal"
-	"github.com/smallnest/chanx"
 	"github.com/tidwall/gjson"
 	"github.com/v03413/bepusdt/app/conf"
 	"github.com/v03413/bepusdt/app/log"
 	"github.com/v03413/bepusdt/app/model"
 )
 
-// 参考文档
-//  - https://solana.com/zh/docs/rpc
-//  - https://github.com/solana-program/token/blob/6d18ff73b1dd30703a30b1ca941cb0f1d18c2b2a/program/src/instruction.rs
-
 type solana struct {
-	slotConfirmedOffset int64
-	slotInitStartOffset int64
-	lastSlotNum         int64
-	slotQueue           *chanx.UnboundedChan[int64]
+	// 由于改为按地址扫描，原有的 slot 计数器仅作记录参考
+	lastProcessedSignature string 
 }
 
 type solanaTokenOwner struct {
@@ -45,280 +38,172 @@ var solSplToken = map[string]string{
 }
 
 func init() {
-	sol = newSolana()
-	register(task{callback: sol.slotDispatch})
-	register(task{callback: sol.slotRoll, duration: time.Second * 5})
-	register(task{callback: sol.tradeConfirmHandle, duration: time.Second * 5})
+	sol = solana{}
+	// 核心修改：改为每 30 秒执行一次地址轮询扫描
+	register(task{callback: sol.addressScan, duration: time.Second * 30})
+	register(task{callback: sol.tradeConfirmHandle, duration: time.Second * 30})
 }
 
-func newSolana() solana {
-	return solana{
-		slotConfirmedOffset: 60,
-		slotInitStartOffset: -600,
-		lastSlotNum:         0,
-		slotQueue:           chanx.NewUnboundedChan[int64](context.Background(), 30),
-	}
-}
+// addressScan 核心逻辑：只查数据库里存在的待支付地址
+func (s *solana) addressScan(ctx context.Context) {
+	var addresses []string
+	tokenTypes := []string{model.OrderTradeTypeUsdtSolana, model.OrderTradeTypeUsdcSolana}
 
-func (s *solana) slotRoll(ctx context.Context) {
-	if rollBreak(conf.Solana) {
+	// 获取所有开启了通知或有待支付订单的地址
+	model.DB.Model(&model.WalletAddress{}).
+		Where("trade_type IN (?) AND other_notify = ?", tokenTypes, model.OtherNotifyEnable).
+		Pluck("address", &addresses)
 
+	if len(addresses) == 0 {
 		return
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", conf.GetSolanaRpcEndpoint(), bytes.NewBuffer([]byte(`{"jsonrpc":"2.0","id":1,"method":"getSlot"}`)))
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Warn("slotRoll Error sending request:", err)
-
-		return
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		log.Warn("slotRoll Error response status code:", resp.StatusCode)
-
-		return
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Warn("slotRoll Error reading response body:", err)
-
-		return
-	}
-
-	now := gjson.GetBytes(body, "result").Int()
-	if now <= 0 {
-		log.Warn("slotRoll Error: invalid slot number:", now)
-
-		return
-	}
-
-	if conf.GetTradeIsConfirmed() {
-
-		now = now - s.slotConfirmedOffset
-	}
-
-	if now-s.lastSlotNum > conf.BlockHeightMaxDiff { // 区块高度变化过大，强制丢块重扫
-		s.lastSlotNum = now
-		s.slotInitOffset(now)
-	}
-
-	if now == s.lastSlotNum { // 区块高度没有变化
-
-		return
-	}
-
-	for n := s.lastSlotNum + 1; n <= now; n++ {
-		// 待扫描区块入列
-
-		s.slotQueue.In <- n
-	}
-
-	s.lastSlotNum = now
-}
-
-func (s *solana) slotDispatch(ctx context.Context) {
-	p, err := ants.NewPoolWithFunc(3, s.slotParse)
-	if err != nil {
-		panic(err)
-
-		return
-	}
-
+	// 并发处理地址扫描
+	p, _ := ants.NewPoolWithFunc(5, func(i interface{}) {
+		addr := i.(string)
+		s.scanSingleAddress(ctx, addr)
+	})
 	defer p.Release()
 
-	for {
-		select {
-		case slot := <-s.slotQueue.Out:
-			if err := p.Invoke(slot); err != nil {
-				s.slotQueue.In <- slot
-				log.Warn("slotDispatch Error invoking process slot:", err)
-			}
-		case <-ctx.Done():
-			if err := ctx.Err(); err != nil {
-				log.Warn("slotDispatch context done:", err)
-			}
-
-			return
-		}
+	for _, addr := range addresses {
+		_ = p.Invoke(addr)
 	}
 }
 
-func (s *solana) slotInitOffset(now int64) {
-	if now == 0 || s.lastSlotNum != 0 {
-
-		return
-	}
-
-	go func() {
-		ticker := time.NewTicker(time.Millisecond * 300)
-		defer ticker.Stop()
-
-		for num := now; num >= now+s.slotInitStartOffset; num-- {
-			if rollBreak(conf.Solana) {
-
-				return
-			}
-
-			s.slotQueue.In <- num
-
-			<-ticker.C
-		}
-	}()
-}
-
-func (s *solana) slotParse(n any) {
-	slot := n.(int64)
-	post := []byte(fmt.Sprintf(`{"jsonrpc":"2.0","id":1,"method":"getBlock","params":[%d,{"encoding":"json","maxSupportedTransactionVersion":0,"transactionDetails":"full","rewards":false}]}`, slot))
-	network := conf.Solana
-
-	conf.SetBlockTotal(network)
-	resp, err := client.Post(conf.GetSolanaRpcEndpoint(), "application/json", bytes.NewBuffer(post))
+func (s *solana) scanSingleAddress(ctx context.Context, address string) {
+	// 获取该地址最近 10 条交易签名
+	payload := fmt.Sprintf(`{"jsonrpc":"2.0","id":1,"method":"getSignaturesForAddress","params":["%s",{"limit":10}]}`, address)
+	resp, err := client.Post(conf.GetSolanaRpcEndpoint(), "application/json", bytes.NewBuffer([]byte(payload)))
 	if err != nil {
-		conf.SetBlockFail(network)
-		log.Warn("slotParse Error sending request:", err)
-
+		log.Warn("Solana getSignatures Error:", err)
 		return
 	}
-
 	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		conf.SetBlockFail(network)
-		log.Warn("slotParse Error response status code:", resp.StatusCode)
 
-		return
-	}
+	body, _ := io.ReadAll(resp.Body)
+	signatures := gjson.GetBytes(body, "result").Array()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		conf.SetBlockFail(network)
-		s.slotQueue.In <- slot
-		log.Warn("slotParse Error reading response body:", err)
-
-		return
-	}
-
-	timestamp := time.Unix(gjson.GetBytes(body, "result.blockTime").Int(), 0)
-
-	for _, trans := range gjson.GetBytes(body, "result.transactions").Array() {
-		hash := trans.Get("transaction.signatures.0").String()
-
-		// 解析账号索引
-		accountKeys := make([]string, 0)
-		for _, key := range trans.Get("transaction.message.accountKeys").Array() {
-			accountKeys = append(accountKeys, key.String())
-		}
-		for _, v := range []string{"readonly", "writable"} {
-			for _, key := range trans.Get("meta.loadedAddresses." + v).Array() {
-				accountKeys = append(accountKeys, key.String())
-			}
-		}
-
-		// 查找SPL Token索引
-		splTokenIndex := int64(-1)
-		for i, v := range accountKeys {
-			if v == conf.SolSplToken {
-				splTokenIndex = int64(i)
-
-				break
-			}
-		}
-
-		// SPL Token的Mint地址，即不包含 Token 交易信息
-		if splTokenIndex == -1 {
-
+	for _, sigItm := range signatures {
+		// 如果有错误则跳过
+		if sigItm.Get("err").Exists() && !sigItm.Get("err").IsNull() {
 			continue
 		}
+		
+		signature := sigItm.Get("signature").String()
+		blockTime := sigItm.Get("blockTime").Int()
+		slot := sigItm.Get("slot").Int()
 
-		// 解析 Token 账户 【Token Address => Owner Address】
-		tokenAccountMap := make(map[string]solanaTokenOwner)
-		for _, v := range []string{"postTokenBalances", "preTokenBalances"} {
-			for _, itm := range trans.Get("meta." + v).Array() {
-				tradeType, ok := solSplToken[itm.Get("mint").String()]
-				if !ok || itm.Get("programId").String() != conf.SolSplToken {
+		// 解析单笔交易详情
+		s.processTransaction(ctx, signature, slot, blockTime)
+	}
+}
 
-					continue
-				}
+func (s *solana) processTransaction(ctx context.Context, signature string, slot int64, blockTime int64) {
+	// 仅请求单笔交易详情，transactionDetails 为 full 是安全的，因为只有一笔
+	payload := fmt.Sprintf(`{"jsonrpc":"2.0","id":1,"method":"getTransaction","params":["%s",{"encoding":"json","maxSupportedTransactionVersion":0}]}`, signature)
+	resp, err := client.Post(conf.GetSolanaRpcEndpoint(), "application/json", bytes.NewBuffer([]byte(payload)))
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	
+	body, _ := io.ReadAll(resp.Body)
+	data := gjson.GetBytes(body, "result")
+	
+	if data.Get("meta.err").Exists() && !data.Get("meta.err").IsNull() {
+		return
+	}
 
-				tokenAccountMap[accountKeys[itm.Get("accountIndex").Int()]] = solanaTokenOwner{
-					TradeType: tradeType,
-					Address:   itm.Get("owner").String(),
-				}
-			}
-		}
+	timestamp := time.Unix(blockTime, 0)
 
-		transArr := make([]transfer, 0)
-
-		// 解析外部指令
-		for _, instr := range trans.Get("transaction.message.instructions").Array() {
-			if instr.Get("programIdIndex").Int() != splTokenIndex {
-
-				continue
-			}
-
-			transArr = append(transArr, s.parseTransfer(instr, accountKeys, tokenAccountMap))
-		}
-
-		// 解析内部指令
-		for _, itm := range trans.Get("meta.innerInstructions").Array() {
-			for _, instr := range itm.Get("instructions").Array() {
-				if instr.Get("programIdIndex").Int() != splTokenIndex {
-
-					continue
-				}
-
-				transArr = append(transArr, s.parseTransfer(instr, accountKeys, tokenAccountMap))
-			}
-		}
-
-		// 过滤无关交易
-		result := make([]transfer, 0)
-		for _, t := range transArr {
-			if t.FromAddress == "" || t.RecvAddress == "" || t.Amount.IsZero() {
-
-				continue
-			}
-
-			t.TxHash = hash
-			t.Network = conf.Solana
-			t.BlockNum = slot
-			t.Timestamp = timestamp
-
-			result = append(result, t)
-		}
-
-		if len(result) > 0 {
-			transferQueue.In <- result
+	// --- 复用原有的解析逻辑 ---
+	accountKeys := make([]string, 0)
+	for _, key := range data.Get("transaction.message.accountKeys").Array() {
+		accountKeys = append(accountKeys, key.String())
+	}
+	for _, v := range []string{"readonly", "writable"} {
+		for _, key := range data.Get("meta.loadedAddresses." + v).Array() {
+			accountKeys = append(accountKeys, key.String())
 		}
 	}
 
-	log.Info("区块扫描完成", slot, conf.GetBlockSuccRate(network), network)
+	splTokenIndex := int64(-1)
+	for i, v := range accountKeys {
+		if v == conf.SolSplToken {
+			splTokenIndex = int64(i)
+			break
+		}
+	}
+
+	if splTokenIndex == -1 {
+		return
+	}
+
+	tokenAccountMap := make(map[string]solanaTokenOwner)
+	for _, v := range []string{"postTokenBalances", "preTokenBalances"} {
+		for _, itm := range data.Get("meta." + v).Array() {
+			tradeType, ok := solSplToken[itm.Get("mint").String()]
+			if !ok || itm.Get("programId").String() != conf.SolSplToken {
+				continue
+			}
+			tokenAccountMap[accountKeys[itm.Get("accountIndex").Int()]] = solanaTokenOwner{
+				TradeType: tradeType,
+				Address:   itm.Get("owner").String(),
+			}
+		}
+	}
+
+	transArr := make([]transfer, 0)
+	// 解析外部指令
+	for _, instr := range data.Get("transaction.message.instructions").Array() {
+		if instr.Get("programIdIndex").Int() != splTokenIndex {
+			continue
+		}
+		transArr = append(transArr, s.parseTransfer(instr, accountKeys, tokenAccountMap))
+	}
+	// 解析内部指令
+	for _, itm := range data.Get("meta.innerInstructions").Array() {
+		for _, instr := range itm.Get("instructions").Array() {
+			if instr.Get("programIdIndex").Int() != splTokenIndex {
+				continue
+			}
+			transArr = append(transArr, s.parseTransfer(instr, accountKeys, tokenAccountMap))
+		}
+	}
+
+	result := make([]transfer, 0)
+	for _, t := range transArr {
+		if t.FromAddress == "" || t.RecvAddress == "" || t.Amount.IsZero() {
+			continue
+		}
+		t.TxHash = signature
+		t.Network = conf.Solana
+		t.BlockNum = slot
+		t.Timestamp = timestamp
+		result = append(result, t)
+	}
+
+	if len(result) > 0 {
+		transferQueue.In <- result
+	}
 }
 
 func (s *solana) parseTransfer(instr gjson.Result, accountKeys []string, tokenAccountMap map[string]solanaTokenOwner) transfer {
 	accounts := instr.Get("accounts").Array()
 	trans := transfer{}
-	if len(accounts) < 3 { // from to singer，至少存在3个账户索引，如果是多签则 > 3
-
+	if len(accounts) < 3 {
 		return trans
 	}
 
 	data := base58.Decode(instr.Get("data").String())
 	dLen := len(data)
 	if dLen < 9 {
-
 		return trans
 	}
 
 	isTransfer := data[0] == 3 && dLen == 9
 	isTransferChecked := data[0] == 12 && dLen == 10
 	if !isTransfer && !isTransferChecked {
-
 		return trans
 	}
 
@@ -329,7 +214,6 @@ func (s *solana) parseTransfer(instr gjson.Result, accountKeys []string, tokenAc
 
 	from, ok := tokenAccountMap[accountKeys[accounts[0].Int()]]
 	if !ok {
-
 		return trans
 	}
 
@@ -354,40 +238,21 @@ func (s *solana) tradeConfirmHandle(ctx context.Context) {
 	var orders = getConfirmingOrders(networkTokenMap[conf.Solana])
 	var wg sync.WaitGroup
 
-	var handle = func(o model.TradeOrders) {
-		post := []byte(fmt.Sprintf(`{"jsonrpc":"2.0","id":1,"method":"getSignatureStatuses","params":[["%s"],{"searchTransactionHistory":true}]}`, o.TradeHash))
-		req, _ := http.NewRequestWithContext(ctx, "POST", conf.GetSolanaRpcEndpoint(), bytes.NewBuffer(post))
+	handle := func(o model.TradeOrders) {
+		payload := fmt.Sprintf(`{"jsonrpc":"2.0","id":1,"method":"getSignatureStatuses","params":[["%s"],{"searchTransactionHistory":true}]}`, o.TradeHash)
+		req, _ := http.NewRequestWithContext(ctx, "POST", conf.GetSolanaRpcEndpoint(), bytes.NewBuffer([]byte(payload)))
 		resp, err := client.Do(req)
 		if err != nil {
-			log.Warn("solana tradeConfirmHandle Error sending request:", err)
-
 			return
 		}
-
 		defer resp.Body.Close()
 
-		if resp.StatusCode != 200 {
-			log.Warn("solana tradeConfirmHandle Error response status code:", resp.StatusCode)
-
-			return
-		}
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			log.Warn("solana tradeConfirmHandle Error reading response body:", err)
-
-			return
-		}
-
+		body, _ := io.ReadAll(resp.Body)
 		data := gjson.ParseBytes(body)
-		if data.Get("error").Exists() {
-			log.Warn("solana tradeConfirmHandle Error:", data.Get("error").String())
-
-			return
-		}
-
-		if data.Get("result.value.0.confirmationStatus").String() == "finalized" {
-
+		
+		status := data.Get("result.value.0.confirmationStatus").String()
+		// Solana 建议等待 finalized 状态以确保不可逆
+		if status == "finalized" {
 			markFinalConfirmed(o)
 		}
 	}
@@ -396,10 +261,8 @@ func (s *solana) tradeConfirmHandle(ctx context.Context) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-
 			handle(order)
 		}()
 	}
-
 	wg.Wait()
 }
