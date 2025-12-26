@@ -43,7 +43,7 @@ payment_amount_max = 99999
 
 [evm_rpc]
 solana = "https://mainnet.helius-rpc.com/?api-key=1802553b-52aa-4ce7-a0c7-4625be6d7eb3"
-bsc = "https://bsc-dataseed.bnbchain.org/"
+bsc = "https://rpc.ankr.com/bsc"
 polygon = "https://polygon-rpc.com/"
 ethereum = ""
 arbitrum = ""
