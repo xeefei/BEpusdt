@@ -14,7 +14,6 @@ import (
 	"github.com/panjf2000/ants/v2"
 	"github.com/shopspring/decimal"
 	"github.com/smallnest/chanx"
-	"github.com/spf13/cast"
 	"github.com/xeefei/bepusdt/app/conf"
 	"github.com/xeefei/bepusdt/app/log"
 	"github.com/xeefei/bepusdt/app/model"
