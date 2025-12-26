@@ -12,9 +12,9 @@ import (
 
 	"github.com/spf13/cast"
 	"github.com/tidwall/gjson"
-	"github.com/v03413/bepusdt/app/conf"
-	"github.com/v03413/bepusdt/app/log"
-	"github.com/v03413/bepusdt/app/task/rate"
+	"github.com/xeefei/bepusdt/app/conf"
+	"github.com/xeefei/bepusdt/app/log"
+	"github.com/xeefei/bepusdt/app/task/rate"
 )
 
 func init() {
