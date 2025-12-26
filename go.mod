@@ -2,6 +2,8 @@ module github.com/xeefei/bepusdt
 
 go 1.24.3
 
+replace github.com/xeefei/go-cache => github.com/xeefei/go-cache main
+
 require (
 	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0
@@ -16,7 +18,6 @@ require (
 	github.com/smallnest/chanx v1.2.0
 	github.com/spf13/cast v1.9.2
 	github.com/tidwall/gjson v1.18.0
-	github.com/xeefei/go-cache v0.0.0-20250526011249-dad9b89e1b2a
 	github.com/xeefei/tronprotocol v0.0.0-20240824084238-bbd62f5e0158
 	google.golang.org/grpc v1.73.0
 	gorm.io/gorm v1.30.0
