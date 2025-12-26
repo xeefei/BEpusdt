@@ -175,8 +175,8 @@ github.com/twitchyliquid64/golang-asm v0.15.1 h1:SU5vSMR7hnwNxj24w34ZyCi/FmDZTkS
 github.com/twitchyliquid64/golang-asm v0.15.1/go.mod h1:a1lVb/DtPvCB8fslRZhAngC2+aY1QWCk3Cedj/Gdt08=
 github.com/ugorji/go/codec v1.2.14 h1:yOQvXCBc3Ij46LRkRoh4Yd5qK6LVOgi0bYOXfb7ifjw=
 github.com/ugorji/go/codec v1.2.14/go.mod h1:UNopzCgEMSXjBc6AOMqYvWC1ktqTAfzJZUZgYf6w6lg=
-github.com/v03413/go-cache v0.0.0-20250526011249-dad9b89e1b2a h1:yt6xga3sEO5qpOBNap00d1c50FrWBhWJwGaJvPxu4ts=
-github.com/v03413/go-cache v0.0.0-20250526011249-dad9b89e1b2a/go.mod h1:QKQ2xRbIt1CAA6767Z00YzFWXQ9ihmoIJi7A14klR2g=
+github.com/v03413/go-cache v0.0.0-20250922030915-0ab5b738a932 h1:Z2aWpconrfks7x1QZgmxHyS5i2rXOYIvQZrzhaCOFrI=
+github.com/v03413/go-cache v0.0.0-20250922030915-0ab5b738a932/go.mod h1:QKQ2xRbIt1CAA6767Z00YzFWXQ9ihmoIJi7A14klR2g=
 github.com/v03413/tronprotocol v0.0.0-20240824084238-bbd62f5e0158 h1:zAlBqlv+ljSO0AOvHQo2ur/MiCZFdwMYPVf7Hu0vezE=
 github.com/v03413/tronprotocol v0.0.0-20240824084238-bbd62f5e0158/go.mod h1:ToWfuVvvk9OTE5i0nisoXPWxVdeBdEduj7ddlwf/s9M=
 go.opentelemetry.io/auto/sdk v1.1.0 h1:cH53jehLUN6UFLY71z+NDOiNJqDdPRaXzTel0sJySYA=
