@@ -14,18 +14,18 @@ const (
 	defaultTrxAtomicity     = 0.01 // TRX原子精度
 
 	// RPC节点均采集自公共网络，作者不对任何节点稳定性和可用性做任何保证，须知！
-	defaultTronGrpcNode        = "18.141.79.38:50051"                             // 默认GRPC节点
-	defaultBscRpcEndpoint      = "https://binance-smart-chain-public.nodies.app/" // 默认BSC RPC节点
-	defaultSolanaRpcEndpoint   = "https://solana-rpc.publicnode.com/"             // 默认Solana RPC节点 官方是 https://api.mainnet-beta.solana.com/ 但存在速率限制
-	defaultXlayerRpcEndpoint   = "https://xlayerrpc.okx.com/"                     // 默认Xlayer RPC节点
-	defaultPolygonRpcEndpoint  = "https://polygon-public.nodies.app/"             // 默认Polygon RPC节点 官方 https://polygon-rpc.com 存在速率限制
-	defaultArbitrumRpcEndpoint = "https://arb1.arbitrum.io/rpc"                   // 默认Arbitrum One RPC节点
-	defaultPlasmaRpcEndpoint   = "https://9745.rpc.thirdweb.com/"                 // 默认Plasma RPC节点，第三方节点，速率限制且稳定性未知
-	defaultEthereumRpcEndpoint = "https://ethereum-public.nodies.app/"            // 默认Ethereum RPC节点
-	defaultBaseRpcEndpoint     = "https://base-public.nodies.app/"                // 默认Base RPC节点 官方 https://mainnet.base.org 存在速率限制
-	defaultAptosRpcEndpoint    = "https://aptos-rest.publicnode.com/"             // 默认Aptos RPC节点
-	defaultOutputLog           = "/var/log/bepusdt.log"                           // 默认日志输出文件
-	defaultSqlitePath          = "/var/lib/bepusdt/sqlite.db"                     // 默认数据库文件
+	defaultTronGrpcNode        = "grpc.trongrid.io:50051"                             // 默认GRPC节点
+	defaultBscRpcEndpoint      = "https://bsc-dataseed.bnbchain.org/" // 默认BSC RPC节点
+	defaultSolanaRpcEndpoint   = "https://mainnet.helius-rpc.com/?api-key=1802553b-52aa-4ce7-a0c7-4625be6d7eb3"             // 默认Solana RPC节点 官方是 https://api.mainnet-beta.solana.com/ 但存在速率限制
+	defaultXlayerRpcEndpoint   = ""                     // 默认Xlayer RPC节点
+	defaultPolygonRpcEndpoint  = "https://polygon-rpc.com/"             // 默认Polygon RPC节点 官方 https://polygon-rpc.com 存在速率限制
+	defaultArbitrumRpcEndpoint = ""                   // 默认Arbitrum One RPC节点
+	defaultPlasmaRpcEndpoint   = ""                 // 默认Plasma RPC节点，第三方节点，速率限制且稳定性未知
+	defaultEthereumRpcEndpoint = ""            // 默认Ethereum RPC节点
+	defaultBaseRpcEndpoint     = ""                // 默认Base RPC节点 官方 https://mainnet.base.org 存在速率限制
+	defaultAptosRpcEndpoint    = ""             // 默认Aptos RPC节点
+	defaultOutputLog           = "/opt/BEpusdt/bepusdt.log"                           // 默认日志输出文件
+	defaultSqlitePath          = "/opt/BEpusdt/sqlite.db"                     // 默认数据库文件
 )
 
 const (
