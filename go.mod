@@ -2,10 +2,6 @@ module github.com/xeefei/bepusdt
 
 go 1.24.3
 
-replace github.com/v03413/go-cache => github.com/xeefei/go-cache main
-
-replace github.com/v03413/tronprotocol => github.com/xeefei/tronprotocol main
-
 require (
 	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0
