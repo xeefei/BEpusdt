@@ -3,7 +3,7 @@ package model
 import (
 	"fmt"
 	"github.com/glebarez/sqlite"
-	"github.com/v03413/bepusdt/app/conf"
+	"github.com/xeefei/bepusdt/app/conf"
 	"gorm.io/gorm"
 	"os"
 	"path/filepath"
