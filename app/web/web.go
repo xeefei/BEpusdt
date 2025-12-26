@@ -23,10 +23,10 @@ func Start(ctx context.Context) {
 	{
 		engine.Use(gin.LoggerWithWriter(log.GetWriter()), gin.Recovery())
 		engine.Use(func(ctx *gin.Context) {
-			ctx.Writer.Header().Set("Payment-Gateway", "https://github.com/v03413/bepusdt")
+			ctx.Writer.Header().Set("Payment-Gateway", "https://github.com/xeefei/bepusdt")
 		})
 		engine.GET("/", func(c *gin.Context) {
-			c.HTML(200, "index.html", gin.H{"title": "一款更易用的USDT收款网关", "url": "https://github.com/v03413/bepusdt"})
+			c.HTML(200, "index.html", gin.H{"title": "一款更易用的USDT收款网关", "url": "https://github.com/xeefei/bepusdt"})
 		})
 	}
 
