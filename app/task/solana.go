@@ -15,9 +15,9 @@ import (
 	"github.com/panjf2000/ants/v2"
 	"github.com/shopspring/decimal"
 	"github.com/tidwall/gjson"
-	"github.com/v03413/bepusdt/app/conf"
-	"github.com/v03413/bepusdt/app/log"
-	"github.com/v03413/bepusdt/app/model"
+	"github.com/xeefei/bepusdt/app/conf"
+	"github.com/xeefei/bepusdt/app/log"
+	"github.com/xeefei/bepusdt/app/model"
 )
 
 type solana struct {
