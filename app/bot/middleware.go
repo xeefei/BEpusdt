@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
-	"github.com/v03413/bepusdt/app/conf"
+	"github.com/xeefei/bepusdt/app/conf"
 	"strings"
 )
 
