@@ -14,7 +14,7 @@ func xlayerInit() {
 		Network:  conf.Xlayer,
 		Endpoint: conf.GetXlayerRpcEndpoint(),
 		Block: block{
-			InitStartOffset: -600,
+			InitStartOffset: -50,
 			RollDelayOffset: 3,
 			ConfirmedOffset: 12,
 		},
@@ -22,6 +22,6 @@ func xlayerInit() {
 	}
 
 	register(task{callback: xlayer.blockDispatch})
-	register(task{callback: xlayer.blockRoll, duration: time.Second * 3})
-	register(task{callback: xlayer.tradeConfirmHandle, duration: time.Second * 5})
+	register(task{callback: xlayer.blockRoll, duration: time.Second * 45})
+	register(task{callback: xlayer.tradeConfirmHandle, duration: time.Second * 45})
 }
