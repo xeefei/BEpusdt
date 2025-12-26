@@ -59,7 +59,7 @@ func epay(ctx context.Context, order model.TradeOrders) {
 		return
 	}
 
-	postReq.Header.Set("Powered-By", "https://github.com/v03413/bepusdt")
+	postReq.Header.Set("Powered-By", "https://github.com/xeefei/bepusdt")
 	resp, err := client.Do(postReq)
 	if err != nil {
 		log.Error("Notify Handle Error：", err)
@@ -134,7 +134,7 @@ func epusdt(ctx context.Context, order model.TradeOrders) {
 	}
 
 	postReq.Header.Set("Content-Type", "application/json")
-	postReq.Header.Set("Powered-By", "https://github.com/v03413/bepusdt")
+	postReq.Header.Set("Powered-By", "https://github.com/xeefei/bepusdt")
 	postReq.Header.Set("User-Agent", "BEpusdt/"+app.Version)
 	resp, err := client.Do(postReq)
 	if err != nil {
