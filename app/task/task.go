@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/shopspring/decimal"
-	"github.com/v03413/bepusdt/app/conf"
+	"github.com/xeefei/bepusdt/app/conf"
 )
 
 type task struct {
