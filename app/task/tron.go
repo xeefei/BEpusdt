@@ -160,6 +160,7 @@ func (t *tron) blockParse(n any) {
 	}
 
 	var resources = make([]resource, 0)
+	_ = resources // 添加这一行
 	var transfers = make([]transfer, 0)
 	var timestamp = time.UnixMilli(bok.GetBlockHeader().GetRawData().GetTimestamp())
 	
