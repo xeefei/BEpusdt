@@ -9,14 +9,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/v03413/bepusdt/app"
-	"github.com/v03413/bepusdt/app/bot"
-	"github.com/v03413/bepusdt/app/conf"
-	"github.com/v03413/bepusdt/app/help"
-	"github.com/v03413/bepusdt/app/log"
-	"github.com/v03413/bepusdt/app/model"
-	e "github.com/v03413/bepusdt/app/web/epay"
-	"github.com/v03413/go-cache"
+	"github.com/xeefei/bepusdt/app"
+	"github.com/xeefei/bepusdt/app/bot"
+	"github.com/xeefei/bepusdt/app/conf"
+	"github.com/xeefei/bepusdt/app/help"
+	"github.com/xeefei/bepusdt/app/log"
+	"github.com/xeefei/bepusdt/app/model"
+	e "github.com/xeefei/bepusdt/app/web/epay"
+	"github.com/xeefei/go-cache"
 )
 
 type EpNotify struct {
