@@ -39,7 +39,7 @@ func webhookHandle(w model.Webhook) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Powered-By", "https://github.com/v03413/bepusdt")
+	req.Header.Set("Powered-By", "https://github.com/xeefei/bepusdt")
 	req.Header.Set("User-Agent", "BEpusdt/"+app.Version)
 	resp, err := client.Do(req)
 	if err != nil {
