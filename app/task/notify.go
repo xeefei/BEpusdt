@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/v03413/bepusdt/app/help"
-	"github.com/v03413/bepusdt/app/log"
-	"github.com/v03413/bepusdt/app/model"
-	"github.com/v03413/bepusdt/app/web/notify"
+	"github.com/xeefei/bepusdt/app/help"
+	"github.com/xeefei/bepusdt/app/log"
+	"github.com/xeefei/bepusdt/app/model"
+	"github.com/xeefei/bepusdt/app/web/notify"
 )
 
 func init() {
