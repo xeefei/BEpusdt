@@ -85,7 +85,7 @@ func (s *solana) scanSingleAddress(ctx context.Context, address string) {
 
 	for _, sigItm := range signatures {
 		// 如果有错误则跳过
-		if sigItm.Get("err").Exists() && !sigItm.Get("err").IsNull() {
+		if sigItm.Get("err").Exists() && sigItm.Get("err").Type != gjson.Null {
 			continue
 		}
 		
@@ -110,7 +110,7 @@ func (s *solana) processTransaction(ctx context.Context, signature string, slot 
 	body, _ := io.ReadAll(resp.Body)
 	data := gjson.GetBytes(body, "result")
 	
-	if data.Get("meta.err").Exists() && !data.Get("meta.err").IsNull() {
+    if data.Get("meta.err").Exists() && data.Get("meta.err").Type != gjson.Null {
 		return
 	}
 
