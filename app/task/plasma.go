@@ -14,13 +14,13 @@ func plasmaInit() {
 		Network:  conf.Plasma,
 		Endpoint: conf.GetPlasmaRpcEndpoint(),
 		Block: block{
-			InitStartOffset: -600,
-			ConfirmedOffset: 40,
+			InitStartOffset: -50,
+			ConfirmedOffset: 15,
 		},
 		blockScanQueue: chanx.NewUnboundedChan[evmBlock](ctx, 30),
 	}
 
 	register(task{callback: xpl.blockDispatch})
-	register(task{callback: xpl.blockRoll, duration: time.Second * 5})
-	register(task{callback: xpl.tradeConfirmHandle, duration: time.Second * 5})
+	register(task{callback: xpl.blockRoll, duration: time.Second * 45})
+	register(task{callback: xpl.tradeConfirmHandle, duration: time.Second * 45})
 }
