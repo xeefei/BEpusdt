@@ -11,12 +11,12 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/smallnest/chanx"
 	"github.com/spf13/cast"
-	bot2 "github.com/v03413/bepusdt/app/bot"
-	"github.com/v03413/bepusdt/app/conf"
-	"github.com/v03413/bepusdt/app/help"
-	"github.com/v03413/bepusdt/app/model"
-	"github.com/v03413/bepusdt/app/web/notify"
-	"github.com/v03413/tronprotocol/core"
+	bot2 "github.com/xeefei/bepusdt/app/bot"
+	"github.com/xeefei/bepusdt/app/conf"
+	"github.com/xeefei/bepusdt/app/help"
+	"github.com/xeefei/bepusdt/app/model"
+	"github.com/xeefei/bepusdt/app/web/notify"
+	"github.com/xeefei/tronprotocol/core"
 )
 
 type transfer struct {
