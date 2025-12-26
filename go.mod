@@ -1,4 +1,4 @@
-module github.com/v03413/bepusdt
+module github.com/xeefei/bepusdt
 
 go 1.24.3
 
