@@ -11,8 +11,8 @@ import (
 )
 
 func init() {
-	register(task{duration: time.Second * 3, callback: notifyRetry})
-	register(task{duration: time.Second * 30, callback: notifyRoll})
+	register(task{duration: time.Second * 45, callback: notifyRetry})
+	register(task{duration: time.Second * 45, callback: notifyRoll})
 }
 
 // notifyRetry 回调失败重试
