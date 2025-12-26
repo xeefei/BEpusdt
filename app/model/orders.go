@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/shopspring/decimal"
-	"github.com/v03413/bepusdt/app/conf"
-	"github.com/v03413/bepusdt/app/help"
-	"github.com/v03413/bepusdt/app/task/rate"
+	"github.com/xeefei/bepusdt/app/conf"
+	"github.com/xeefei/bepusdt/app/help"
+	"github.com/xeefei/bepusdt/app/task/rate"
 )
 
 const (
