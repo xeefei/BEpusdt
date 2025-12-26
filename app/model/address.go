@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/v03413/bepusdt/app/conf"
-	"github.com/v03413/bepusdt/app/help"
+	"github.com/xeefei/bepusdt/app/conf"
+	"github.com/xeefei/bepusdt/app/help"
 )
 
 const (
