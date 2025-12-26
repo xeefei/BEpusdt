@@ -232,7 +232,7 @@ func Bepusdt(order model.TradeOrders) {
 		}
 
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Powered-By", "https://github.com/v03413/BEpusdt")
+		req.Header.Set("Powered-By", "https://github.com/xeefei/BEpusdt")
 		resp, err := client.Do(req)
 		if err != nil {
 			db.Rollback()
