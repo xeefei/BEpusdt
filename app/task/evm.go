@@ -95,21 +95,24 @@ type evmBlock struct {
 
 // blockRoll 定时检查最新高度并将任务入队
 func (e *evm) blockRoll(ctx context.Context) {
+	// 【优化】添加日志，确认函数是否执行，排查 BSC “静默”问题
+	// 如果觉得太吵，可以将 log.Info 改为 log.Debug
 	if rollBreak(e.Network) {
+		log.Debug("当前网络无待处理订单，暂停扫块:", e.Network) // 可选开启调试
 		return
 	}
 
 	post := []byte(`{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}`)
 	req, err := http.NewRequestWithContext(ctx, "POST", e.Endpoint, bytes.NewBuffer(post))
 	if err != nil {
-		log.Warn("创建高度请求失败:", err)
+		log.Warn("创建高度请求失败:", err, " Network:", e.Network)
 		return
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Warn("发送高度请求失败:", err)
+		log.Warn("发送高度请求失败:", err, " Network:", e.Network)
 		return
 	}
 	defer resp.Body.Close()
@@ -121,6 +124,11 @@ func (e *evm) blockRoll(ctx context.Context) {
 	}
 
 	var res = gjson.ParseBytes(body)
+	if !res.Get("result").Exists() {
+		log.Warn("节点返回格式错误:", string(body), " Network:", e.Network)
+		return
+	}
+
 	var now = help.HexStr2Int(res.Get("result").String()).Int64() - e.Block.RollDelayOffset
 	if now <= 0 {
 		return
@@ -141,9 +149,14 @@ func (e *evm) blockRoll(ctx context.Context) {
 	}
 
 	chainBlockNum.Store(e.Network, now)
+	
+	// 【优化】增加高度检查日志，如果 now <= lastBlockNumber，说明没有新块，自然没有后续日志
 	if now <= lastBlockNumber {
+		// log.Info("区块高度未更新:", e.Network, " 当前:", now, " 上次:", lastBlockNumber)
 		return
 	}
+
+	log.Info("发现新区块范围:", e.Network, " From:", lastBlockNumber+1, " To:", now)
 
 	// 将需要扫描的区块范围拆分任务入队
 	for from := lastBlockNumber + 1; from <= now; from += blockParseMaxNum {
@@ -157,6 +170,7 @@ func (e *evm) blockRoll(ctx context.Context) {
 
 // blockInitOffset 初始化扫描偏移量
 func (e *evm) blockInitOffset(now, offset int64) int64 {
+	log.Info("初始化/重置区块扫描进度:", e.Network, " 当前高度:", now)
 	go func() {
 		ticker := time.NewTicker(time.Second)
 		defer ticker.Stop()
@@ -226,7 +240,7 @@ func (e *evm) getBlockByNumber(a any) {
 		conf.SetBlockFail(e.Network)
 		// 失败重试：延迟入队
 		time.AfterFunc(time.Second*8, func() { e.blockScanQueue.In <- b })
-		log.Warn("eth_getBlockByNumber 网络错误:", err)
+		log.Warn("eth_getBlockByNumber 网络错误:", err, " Network:", e.Network)
 		return
 	}
 	defer resp.Body.Close()
@@ -253,7 +267,7 @@ func (e *evm) getBlockByNumber(a any) {
 	if err != nil {
 		conf.SetBlockFail(e.Network)
 		time.AfterFunc(time.Second*8, func() { e.blockScanQueue.In <- b })
-		log.Warn("日志解析过程报错:", err)
+		log.Warn("日志解析过程报错:", err, " Network:", e.Network)
 		return
 	}
 
@@ -286,7 +300,6 @@ func (e *evm) parseBlockTransfer(b evmBlock, timestamp map[string]time.Time) ([]
 	}
 
 	// 2. 构造带 address 过滤条件的 eth_getLogs 请求
-	// 这是解决 limit exceeded 和 流量暴涨的关键
 	addrJson, _ := json.Marshal(targetAddresses)
 	payload := fmt.Sprintf(`{"jsonrpc":"2.0","method":"eth_getLogs","params":[{"fromBlock":"0x%x","toBlock":"0x%x","address":%s,"topics":["%s"]}],"id":1}`,
 		b.From, b.To, string(addrJson), evmTransferEvent)
@@ -319,9 +332,25 @@ func (e *evm) parseBlockTransfer(b evmBlock, timestamp map[string]time.Time) ([]
 
 	// 3. 解析返回的日志结果
 	for _, itm := range data.Get("result").Array() {
-		contractAddr := strings.ToLower(itm.Get("address").String())
-		tradeType, ok := contractMap[contractAddr]
-		if !ok {
+		// 【优化重点】解决大小写问题：
+		// 节点返回的 address 可能是全小写，也可能是 Checksum 混合写。
+		// 这里不强制转小写，而是使用 Case-Insensitive (不区分大小写) 的方式去 contractMap 匹配。
+		rpcAddress := itm.Get("address").String()
+		
+		var tradeType string
+		var matchedContractKey string
+
+		// 遍历 Map 查找匹配的合约（忽略大小写）
+		for k, v := range contractMap {
+			if strings.EqualFold(k, rpcAddress) {
+				tradeType = v
+				matchedContractKey = k // 找到配置中原本的 Key（可能是大小写混合的）
+				break
+			}
+		}
+
+		// 如果没找到对应的 TradeType，跳过
+		if tradeType == "" {
 			continue
 		}
 
@@ -330,7 +359,7 @@ func (e *evm) parseBlockTransfer(b evmBlock, timestamp map[string]time.Time) ([]
 			continue
 		}
 
-		// 解析转账详情 (从 topics 中提取 from, to, 并从 data 中提取 amount)
+		// 解析转账详情
 		from := "0x" + strings.TrimLeft(topics[1].String()[2:], "0")
 		recv := "0x" + strings.TrimLeft(topics[2].String()[2:], "0")
 		if from == "0x" { from = "0x0" }
@@ -343,11 +372,12 @@ func (e *evm) parseBlockTransfer(b evmBlock, timestamp map[string]time.Time) ([]
 
 		blockNum, _ := strconv.ParseInt(itm.Get("blockNumber").String(), 0, 64)
 
+		// 注意：decimals 获取时使用 matchedContractKey，确保能取到值
 		transfers = append(transfers, transfer{
 			Network:     e.Network,
 			FromAddress: from,
 			RecvAddress: recv,
-			Amount:      decimal.NewFromBigInt(amount, decimals[contractAddr]),
+			Amount:      decimal.NewFromBigInt(amount, decimals[matchedContractKey]), 
 			TxHash:      itm.Get("transactionHash").String(),
 			BlockNum:    blockNum,
 			Timestamp:   timestamp[itm.Get("blockNumber").String()],
