@@ -15,7 +15,7 @@ const (
 
 	// RPC节点均采集自公共网络，作者不对任何节点稳定性和可用性做任何保证，须知！
 	defaultTronGrpcNode        = "grpc.trongrid.io:50051"                             // 默认GRPC节点
-	defaultBscRpcEndpoint      = "https://rpc.ankr.com/bsc" // 默认BSC RPC节点
+	defaultBscRpcEndpoint      = "https://rpc.ankr.com/bsc/49ac40ba5ee03a3139b39905f25cda7a78436c8100652c4b09b6bee28ab5320c" // 默认BSC RPC节点
 	defaultSolanaRpcEndpoint   = "https://mainnet.helius-rpc.com/?api-key=1802553b-52aa-4ce7-a0c7-4625be6d7eb3"             // 默认Solana RPC节点 官方是 https://api.mainnet-beta.solana.com/ 但存在速率限制
 	defaultXlayerRpcEndpoint   = ""                     // 默认Xlayer RPC节点
 	defaultPolygonRpcEndpoint  = "https://polygon-rpc.com/"             // 默认Polygon RPC节点 官方 https://polygon-rpc.com 存在速率限制
