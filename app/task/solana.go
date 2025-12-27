@@ -59,7 +59,7 @@ func (s *solana) addressScan(ctx context.Context) {
 	}
 
 	// [新增中文提示] 开始批量扫描任务
-	log.Infof("Solana 开始批量扫描任务，目标地址数量: %d", len(addresses))
+	log.Info("Solana 开始批量扫描任务，目标地址数量: %d", len(addresses))
 
 	// 并发处理地址扫描
 	p, _ := ants.NewPoolWithFunc(5, func(i interface{}) {
@@ -87,7 +87,7 @@ func (s *solana) scanSingleAddress(ctx context.Context, address string) {
 	signatures := gjson.GetBytes(body, "result").Array()
 
 	// [新增中文提示] 地址扫描成功，输出该地址获取到的签名数量
-	log.Infof("Solana 地址扫描成功: [%s], 发现签名数: %d", address, len(signatures))
+	log.Info("Solana 地址扫描成功: [%s], 发现签名数: %d", address, len(signatures))
 
 	for _, sigItm := range signatures {
 		// 如果有错误则跳过
@@ -191,7 +191,7 @@ func (s *solana) processTransaction(ctx context.Context, signature string, slot 
 
 	if len(result) > 0 {
 		// [新增中文提示] 交易解析成功并推送到队列
-		log.Infof("Solana 交易解析成功: 哈希=%s, 高度=%d, 有效转账数=%d", signature, slot, len(result))
+		log.Info("Solana 交易解析成功: 哈希=%s, 高度=%d, 有效转账数=%d", signature, slot, len(result))
 		transferQueue.In <- result
 	}
 }
@@ -262,7 +262,7 @@ func (s *solana) tradeConfirmHandle(ctx context.Context) {
 		// Solana 建议等待 finalized 状态以确保不可逆
 		if status == "finalized" {
 			// [新增中文提示] 订单确认成功
-			log.Infof("Solana 交易最终确认(finalized): %s", o.TradeHash)
+			log.Info("Solana 交易最终确认(finalized): %s", o.TradeHash)
 			markFinalConfirmed(o)
 		}
 	}
