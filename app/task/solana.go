@@ -23,6 +23,8 @@ import (
 type solana struct {
 	// 由于改为按地址扫描，原有的 slot 计数器仅作记录参考
 	lastProcessedSignature string
+	// [优化] 将协程池提升为结构体成员，长期复用
+	scanPool *ants.PoolWithFunc
 }
 
 type solanaTokenOwner struct {
@@ -39,6 +41,19 @@ var solSplToken = map[string]string{
 
 func init() {
 	sol = solana{}
+
+	// [优化] 初始化一次协程池，长期复用，避免每30秒创建销毁带来的开销
+	// 注意：worker 内部使用 context.Background()，因为 init 时没有上下文
+	var err error
+	sol.scanPool, err = ants.NewPoolWithFunc(10, func(i interface{}) {
+		addr := i.(string)
+		sol.scanSingleAddress(context.Background(), addr)
+	})
+	if err != nil {
+		// 如果协程池启动失败，直接 Panic 提示
+		panic(fmt.Sprintf("Solana Pool Init Failed: %v", err))
+	}
+
 	// 核心修改：改为每 30 秒执行一次地址轮询扫描
 	register(task{callback: sol.addressScan, duration: time.Second * 30})
 	register(task{callback: sol.tradeConfirmHandle, duration: time.Second * 30})
@@ -59,23 +74,19 @@ func (s *solana) addressScan(ctx context.Context) {
 	}
 
 	// [新增中文提示] 开始批量扫描任务
-	log.Info("Solana 开始批量扫描任务，目标地址数量: %d", len(addresses))
+	// [优化日志格式]
+	log.Info(fmt.Sprintf("Solana 开启批量扫描任务，目标地址数量: %d", len(addresses)))
 
-	// 并发处理地址扫描
-	p, _ := ants.NewPoolWithFunc(5, func(i interface{}) {
-		addr := i.(string)
-		s.scanSingleAddress(ctx, addr)
-	})
-	defer p.Release()
-
+	// [优化] 直接调用复用的协程池，不再由这里创建和释放
 	for _, addr := range addresses {
-		_ = p.Invoke(addr)
+		_ = s.scanPool.Invoke(addr)
 	}
 }
 
 func (s *solana) scanSingleAddress(ctx context.Context, address string) {
-	// 获取该地址最近 10 条交易签名
-	payload := fmt.Sprintf(`{"jsonrpc":"2.0","id":1,"method":"getSignaturesForAddress","params":["%s",{"limit":10}]}`, address)
+	// 获取该地址最近 50 条交易签名
+	// [优化] 将 limit 从 10 提高到 50，防止高频交易下漏单
+	payload := fmt.Sprintf(`{"jsonrpc":"2.0","id":1,"method":"getSignaturesForAddress","params":["%s",{"limit":50}]}`, address)
 	resp, err := client.Post(conf.GetSolanaRpcEndpoint(), "application/json", bytes.NewBuffer([]byte(payload)))
 	if err != nil {
 		log.Warn("Solana getSignatures Error:", err)
@@ -87,7 +98,8 @@ func (s *solana) scanSingleAddress(ctx context.Context, address string) {
 	signatures := gjson.GetBytes(body, "result").Array()
 
 	// [新增中文提示] 地址扫描成功，输出该地址获取到的签名数量
-	log.Info("Solana 地址扫描成功: [%s], 发现签名数: %d", address, len(signatures))
+	// [优化日志格式] 仅当有签名时打印，或者保持原样打印
+	log.Info(fmt.Sprintf("Solana 地址扫描成功: [%s], 发现签名数: %d", address, len(signatures)))
 
 	for _, sigItm := range signatures {
 		// 如果有错误则跳过
@@ -191,7 +203,8 @@ func (s *solana) processTransaction(ctx context.Context, signature string, slot 
 
 	if len(result) > 0 {
 		// [新增中文提示] 交易解析成功并推送到队列
-		log.Info("Solana 交易解析成功: 哈希=%s, 高度=%d, 有效转账数=%d", signature, slot, len(result))
+		// [优化日志格式]
+		log.Info(fmt.Sprintf("Solana 交易解析成功: 哈希=%s, 高度=%d, 有效转账数=%d", signature, slot, len(result)))
 		transferQueue.In <- result
 	}
 }
@@ -262,17 +275,19 @@ func (s *solana) tradeConfirmHandle(ctx context.Context) {
 		// Solana 建议等待 finalized 状态以确保不可逆
 		if status == "finalized" {
 			// [新增中文提示] 订单确认成功
-			log.Info("Solana 交易最终确认(finalized): %s", o.TradeHash)
+			// [优化日志格式] 使用 fmt.Sprintf 兼容不支持格式化的 Log 库
+			log.Info(fmt.Sprintf("Solana 交易最终确认(finalized): %s", o.TradeHash))
 			markFinalConfirmed(o)
 		}
 	}
 
 	for _, order := range orders {
 		wg.Add(1)
-		go func() {
+		// [优化] 修复闭包问题：将 order 作为参数传递给匿名函数，确保并发安全
+		go func(ord model.TradeOrders) {
 			defer wg.Done()
-			handle(order)
-		}()
+			handle(ord)
+		}(order)
 	}
 	wg.Wait()
 }
